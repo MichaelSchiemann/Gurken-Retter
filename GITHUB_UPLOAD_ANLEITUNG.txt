@@ -1,0 +1,29 @@
+Gurken-Retter auf GitHub Pages veröffentlichen
+==============================================
+
+Variante ohne Terminal:
+
+1. Gehe zu https://github.com/new
+2. Repository name: gurken-retter
+3. Public auswählen
+4. Create repository
+5. "uploading an existing file" anklicken
+6. Den Inhalt dieses Ordners hochladen:
+   - index.html
+   - manifest.webmanifest
+   - service-worker.js
+   - README.md
+   - .nojekyll
+   - Ordner icons/
+7. Commit changes klicken
+8. Settings → Pages
+9. Source: Deploy from a branch
+10. Branch: main, Folder: /root
+11. Save
+
+Dein Link sieht danach ungefähr so aus:
+https://DEIN-GITHUB-NAME.github.io/gurken-retter/
+
+Wichtig:
+Bitte keine GitHub-Passwörter oder Tokens in Telegram schicken.
+Wenn du möchtest, kannst du mir stattdessen nur deinen GitHub-Benutzernamen und den gewünschten Repository-Namen nennen; ich gebe dir dann die exakt passende Link-Struktur und Schritte.
