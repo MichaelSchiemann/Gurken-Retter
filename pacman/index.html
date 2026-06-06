@@ -39,6 +39,7 @@
   <div class="hud">
     <div class="pill">● <span id="score">0</span></div>
     <div class="pill">♥ <span id="lives">3</span></div>
+    <div class="pill">L<span id="level">1</span></div>
     <div class="pill">🏆 <span id="best">0</span></div>
   </div>
   <div class="controls" aria-label="Steuerung">
@@ -58,46 +59,95 @@
   'use strict';
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d', { alpha: false });
-  const $score = document.getElementById('score'), $lives = document.getElementById('lives'), $best = document.getElementById('best');
+  const $score = document.getElementById('score'), $lives = document.getElementById('lives'), $level = document.getElementById('level'), $best = document.getElementById('best');
   const overlay = document.getElementById('overlay'), startButton = document.getElementById('start');
   const storeKey = 'punktjaeger-best-v1';
   let best = Number(localStorage.getItem(storeKey) || 0); $best.textContent = best;
   const DIRS = {left:{x:-1,y:0}, right:{x:1,y:0}, up:{x:0,y:-1}, down:{x:0,y:1}};
   const OPP = {left:'right', right:'left', up:'down', down:'up'};
-  const MAP = [
-    '###############',
-    '#P....#....o..#',
-    '#.###.#.###.#.#',
-    '#o#.......#.#.#',
-    '#.###.###.#...#',
-    '#.....#.......#',
-    '###.#.#.#.###.#',
-    '#...#...#...#.#',
-    '#.#####G###.#.#',
-    '#.............#',
-    '#.###.#.#.###.#',
-    '#o..#.#.#...o.#',
-    '###.#.#.###.#.#',
-    '#.....#.......#',
-    '#.###.###.###.#',
-    '#.............#',
-    '###############'
+  const LEVELS = [
+    [
+      '###############',
+      '#P....#....o..#',
+      '#.###.#.###.#.#',
+      '#o#.......#.#.#',
+      '#.###.###.#...#',
+      '#.....#.......#',
+      '###.#.#.#.###.#',
+      '#...#...#...#.#',
+      '#.#####G###.#.#',
+      '#.............#',
+      '#.###.#.#.###.#',
+      '#o..#.#.#...o.#',
+      '###.#.#.###.#.#',
+      '#.....#.......#',
+      '#.###.###.###.#',
+      '#.............#',
+      '###############'
+    ],
+    [
+      '###############',
+      '#P..o....#....#',
+      '#.###.##.#.#..#',
+      '#...#....#.#o.#',
+      '###.#.####.#..#',
+      '#...#......#..#',
+      '#.#.####.#.#..#',
+      '#.#....G.#....#',
+      '#.####.#.###..#',
+      '#......#......#',
+      '#.####.#####..#',
+      '#o#......#....#',
+      '#.#.####.#.####',
+      '#...#....#....#',
+      '#.#.#.######..#',
+      '#o#.........o.#',
+      '###############'
+    ],
+    [
+      '###############',
+      '#P....o.......#',
+      '#.#####.###...#',
+      '#.....#...#...#',
+      '###.#.###.#.###',
+      '#...#.....#...#',
+      '#.#######.##..#',
+      '#.....G.......#',
+      '#.##.#######..#',
+      '#..#.....#....#',
+      '##.#.###.#.####',
+      '#..#...#......#',
+      '#..###.#####..#',
+      '#......o......#',
+      '#.##########..#',
+      '#o............#',
+      '###############'
+    ]
   ];
-  const state = { w:0,h:0,dpr:1,tile:20,ox:0,oy:80, running:false, paused:false, over:false, score:0,lives:3,level:1,last:0,time:0, pellets:0, frightened:0, grid:[], player:null, ghosts:[], particles:[], mouth:0, touch:null, audio:null, muted:false };
+  const ghostBrains = [
+    {mode:'chaser', color:'#ff4d6d', dir:'left', speed:4.15, corner:{x:13,y:1}},
+    {mode:'ambusher', color:'#4ddcff', dir:'up', speed:3.95, corner:{x:1,y:1}},
+    {mode:'patrol', color:'#ff9f43', dir:'down', speed:3.85, corner:{x:13,y:15}},
+    {mode:'wanderer', color:'#b875ff', dir:'right', speed:3.75, corner:{x:1,y:15}}
+  ];
+  const state = { w:0,h:0,dpr:1,tile:20,ox:0,oy:80, running:false, paused:false, over:false, score:0,lives:3,level:1,last:0,time:0, pellets:0, frightened:0, grid:[], currentMap:LEVELS[0], player:null, ghosts:[], particles:[], mouth:0, touch:null, audio:null, muted:false };
 
-  function resize(){ state.dpr=Math.min(devicePixelRatio||1,2); state.w=innerWidth; state.h=innerHeight; canvas.width=Math.floor(state.w*state.dpr); canvas.height=Math.floor(state.h*state.dpr); canvas.style.width=state.w+'px'; canvas.style.height=state.h+'px'; ctx.setTransform(state.dpr,0,0,state.dpr,0,0); const rows=MAP.length, cols=MAP[0].length; const usableH=state.h-210-Math.max(0, (window.safeAreaInsetBottom||0)); state.tile=Math.floor(Math.min((state.w-24)/cols, usableH/rows)); state.tile=Math.max(18, state.tile); state.ox=(state.w-state.tile*cols)/2; state.oy=Math.max(58, (state.h-state.tile*rows-130)/2); }
-  function cloneLevel(){ state.grid=MAP.map(r=>r.split('')); state.pellets=0; let spawn={x:7,y:8}; for(let y=0;y<state.grid.length;y++) for(let x=0;x<state.grid[y].length;x++){ const c=state.grid[y][x]; if(c==='.'||c==='o') state.pellets++; if(c==='P'){ state.player=entity(x,y,'right',5.6); state.grid[y][x]=' '; } if(c==='G'){ spawn={x,y}; state.grid[y][x]=' '; }} state.ghosts=[entity(spawn.x,spawn.y,'left',4.15,'#ff4d6d'), entity(spawn.x-1,spawn.y,'up',3.95,'#4ddcff'), entity(spawn.x+1,spawn.y,'down',3.85,'#ff9f43')]; }
-  function entity(x,y,dir,speed,color){ return {x:x+.5,y:y+.5,spawnX:x+.5,spawnY:y+.5,dir,next:dir,speed,color,dead:0}; }
-  function resetAll(){ state.score=0; state.lives=3; state.level=1; state.frightened=0; state.running=true; state.over=false; state.particles=[]; cloneLevel(); updateHud(); overlay.classList.add('hidden'); sound('start'); }
-  function updateHud(){ $score.textContent=state.score; $lives.textContent=state.lives; if(state.score>best){best=state.score; localStorage.setItem(storeKey,String(best));} $best.textContent=best; }
+  function activeMap(){ return LEVELS[(state.level-1) % LEVELS.length]; }
+  function resize(){ state.dpr=Math.min(devicePixelRatio||1,2); state.w=innerWidth; state.h=innerHeight; canvas.width=Math.floor(state.w*state.dpr); canvas.height=Math.floor(state.h*state.dpr); canvas.style.width=state.w+'px'; canvas.style.height=state.h+'px'; ctx.setTransform(state.dpr,0,0,state.dpr,0,0); const map=state.currentMap||LEVELS[0], rows=map.length, cols=map[0].length; const usableH=state.h-210-Math.max(0, (window.safeAreaInsetBottom||0)); state.tile=Math.floor(Math.min((state.w-24)/cols, usableH/rows)); state.tile=Math.max(18, state.tile); state.ox=(state.w-state.tile*cols)/2; state.oy=Math.max(58, (state.h-state.tile*rows-130)/2); }
+  function cloneLevel(){ state.currentMap=activeMap(); state.grid=state.currentMap.map(r=>r.split('')); state.pellets=0; let spawn={x:7,y:8}; for(let y=0;y<state.grid.length;y++) for(let x=0;x<state.grid[y].length;x++){ const c=state.grid[y][x]; if(c==='.'||c==='o') state.pellets++; if(c==='P'){ state.player=entity(x,y,'right',5.6); state.grid[y][x]=' '; } if(c==='G'){ spawn={x,y}; state.grid[y][x]=' '; }} const starts=[{x:spawn.x,y:spawn.y},{x:spawn.x-1,y:spawn.y},{x:spawn.x+1,y:spawn.y},{x:spawn.x,y:spawn.y-1}]; state.ghosts=ghostBrains.map((brain,i)=>entity(starts[i].x, starts[i].y, brain.dir, brain.speed, brain.color, brain.mode, brain.corner, i)); resize(); }
+  function entity(x,y,dir,speed,color,mode='player',corner={x:1,y:1},id=0){ return {x:x+.5,y:y+.5,spawnX:x+.5,spawnY:y+.5,dir,next:dir,speed,baseSpeed:speed,color,mode,corner,id,dead:0,wander:{x:corner.x,y:corner.y},turns:0}; }
+  function resetAll(){ state.score=0; state.lives=3; state.level=1; state.frightened=0; state.running=true; state.over=false; state.particles=[]; overlay.querySelector('.mascot').textContent='🟡'; overlay.querySelector('h1').innerHTML='Punkt-<br>jäger'; overlay.querySelector('p').textContent='Eine klassische Labyrinth-Jagd fürs iPhone: Punkte fressen, Geistern ausweichen, Powerpunkte nutzen.'; startButton.textContent='Spiel starten'; cloneLevel(); updateHud(); overlay.classList.add('hidden'); sound('start'); }
+  function updateHud(){ $score.textContent=state.score; $lives.textContent=state.lives; $level.textContent=state.level; if(state.score>best){best=state.score; localStorage.setItem(storeKey,String(best));} $best.textContent=best; }
   function wall(x,y){ x=Math.floor(x); y=Math.floor(y); return y<0||y>=state.grid.length||x<0||x>=state.grid[0].length||state.grid[y][x]==='#'; }
   function centered(e){ return Math.abs(e.x-(Math.floor(e.x)+.5))<.085 && Math.abs(e.y-(Math.floor(e.y)+.5))<.085; }
   function can(e,dir){ const d=DIRS[dir]; return !wall(Math.floor(e.x)+d.x, Math.floor(e.y)+d.y); }
   function move(e,dt){ if(e.dead>0){ e.dead-=dt; return; } if(centered(e)){ e.x=Math.floor(e.x)+.5; e.y=Math.floor(e.y)+.5; if(can(e,e.next)) e.dir=e.next; if(!can(e,e.dir)) return; } const d=DIRS[e.dir]; e.x+=d.x*e.speed*dt; e.y+=d.y*e.speed*dt; }
   function setDir(d){ if(!state.player) return; state.player.next=d; }
   function updatePlayer(dt){ const p=state.player; p.speed=5.55+Math.min(1.15,state.level*.12); move(p,dt); const tx=Math.floor(p.x), ty=Math.floor(p.y), c=state.grid[ty]?.[tx]; if((c==='.'||c==='o') && Math.abs(p.x-(tx+.5))<.35 && Math.abs(p.y-(ty+.5))<.35){ state.grid[ty][tx]=' '; state.pellets--; state.score += c==='o' ? 50 : 10; burst(p.x,p.y,c==='o'?'#7cf8ff':'#ffe45e',c==='o'?18:5); sound(c==='o'?'power':'dot'); if(c==='o') state.frightened=8.5; updateHud(); if(state.pellets<=0) nextLevel(); }}
-  function nextLevel(){ state.level++; state.score+=250; sound('win'); cloneLevel(); updateHud(); }
-  function updateGhosts(dt){ state.frightened=Math.max(0,state.frightened-dt); for(const g of state.ghosts){ if(centered(g)){ g.x=Math.floor(g.x)+.5; g.y=Math.floor(g.y)+.5; const options=Object.keys(DIRS).filter(d=>d!==OPP[g.dir] && can(g,d)); const dirs=options.length?options:Object.keys(DIRS).filter(d=>can(g,d)); if(dirs.length){ if(state.frightened>0) g.next=dirs[Math.floor(Math.random()*dirs.length)]; else { const p=state.player; dirs.sort((a,b)=>{ const da=DIRS[a], db=DIRS[b]; const ax=g.x+da.x-p.x, ay=g.y+da.y-p.y, bx=g.x+db.x-p.x, by=g.y+db.y-p.y; return (ax*ax+ay*ay)-(bx*bx+by*by); }); g.next=dirs[0]; } } } g.speed=(state.frightened>0?2.75:3.6+state.level*.18); move(g,dt); const dx=g.x-state.player.x, dy=g.y-state.player.y; if(dx*dx+dy*dy<.34){ if(state.frightened>0){ state.score+=200; g.x=g.spawnX; g.y=g.spawnY; g.dead=.7; burst(g.x,g.y,'#a6f7ff',22); sound('eatGhost'); updateHud(); } else if(g.dead<=0) loseLife(); } }}
+  function nextLevel(){ state.level++; state.score+=250; state.frightened=0; sound('win'); cloneLevel(); updateHud(); }
+  function chooseTarget(g){ const p=state.player, pd=DIRS[p.dir]||DIRS.right; if(state.frightened>0) return g.corner; if(g.mode==='chaser') return {x:p.x,y:p.y}; if(g.mode==='ambusher') return {x:p.x+pd.x*4,y:p.y+pd.y*4}; if(g.mode==='patrol'){ const corners=[g.corner,{x:1,y:g.corner.y},{x:g.corner.x,y:1},{x:7,y:8}]; return corners[Math.floor((state.time*.22+g.id)%corners.length)]; } if(g.mode==='wanderer'){ if(!g.wander || Math.hypot(g.x-g.wander.x,g.y-g.wander.y)<2 || g.turns%7===0){ const cols=state.grid[0].length, rows=state.grid.length; do { g.wander={x:1+Math.floor(Math.random()*(cols-2)), y:1+Math.floor(Math.random()*(rows-2))}; } while(wall(g.wander.x,g.wander.y)); } return g.wander; } return g.corner; }
+  function chooseGhostDir(g, dirs){ if(!dirs.length) return g.dir; if(state.frightened>0) return dirs[Math.floor(Math.random()*dirs.length)]; const target=chooseTarget(g); dirs.sort((a,b)=>{ const da=DIRS[a], db=DIRS[b]; const ax=g.x+da.x-target.x, ay=g.y+da.y-target.y, bx=g.x+db.x-target.x, by=g.y+db.y-target.y; return (ax*ax+ay*ay)-(bx*bx+by*by); }); if(g.mode==='wanderer' && Math.random()<.35) return dirs[Math.floor(Math.random()*Math.min(2,dirs.length))]; return dirs[0]; }
+  function updateGhosts(dt){ state.frightened=Math.max(0,state.frightened-dt); for(const g of state.ghosts){ if(centered(g)){ g.x=Math.floor(g.x)+.5; g.y=Math.floor(g.y)+.5; g.turns++; const options=Object.keys(DIRS).filter(d=>d!==OPP[g.dir] && can(g,d)); const dirs=options.length?options:Object.keys(DIRS).filter(d=>can(g,d)); g.next=chooseGhostDir(g, dirs); } g.speed=(state.frightened>0?2.75:g.baseSpeed+state.level*.18); move(g,dt); const dx=g.x-state.player.x, dy=g.y-state.player.y; if(dx*dx+dy*dy<.34){ if(state.frightened>0){ state.score+=200; g.x=g.spawnX; g.y=g.spawnY; g.dead=.7; burst(g.x,g.y,'#a6f7ff',22); sound('eatGhost'); updateHud(); } else if(g.dead<=0) loseLife(); } }}
   function loseLife(){ state.lives--; sound('death'); navigator.vibrate?.([80,40,120]); updateHud(); if(state.lives<=0){ state.running=false; state.over=true; overlay.querySelector('.mascot').textContent='👻'; overlay.querySelector('h1').innerHTML='Spiel<br>vorbei'; overlay.querySelector('p').textContent=`Du hast ${state.score} Punkte gejagt. Rekord: ${best}.`; startButton.textContent='Noch mal spielen'; overlay.classList.remove('hidden'); } else { const oldScore=state.score; cloneLevel(); state.score=oldScore; }}
   function burst(gx,gy,color,n){ const p=toPx(gx,gy); for(let i=0;i<n;i++){ const a=Math.random()*Math.PI*2, s=35+Math.random()*110; state.particles.push({x:p.x,y:p.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:.35+Math.random()*.45,color,r:1.5+Math.random()*2.5}); }}
   function updateParticles(dt){ for(let i=state.particles.length-1;i>=0;i--){ const p=state.particles[i]; p.life-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=.98; p.vy*=.98; if(p.life<=0) state.particles.splice(i,1); }}
@@ -109,7 +159,7 @@
   function drawEntities(){ const p=toPx(state.player.x,state.player.y), t=state.tile; const angle={right:0,left:Math.PI,up:-Math.PI/2,down:Math.PI/2}[state.player.dir]; const open=.2+state.mouth*.55; ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(angle); ctx.fillStyle='#ffe45e'; ctx.shadowColor='#ffe45e'; ctx.shadowBlur=18; ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,t*.42,open,Math.PI*2-open); ctx.closePath(); ctx.fill(); ctx.restore(); ctx.shadowBlur=0; for(const g of state.ghosts) drawGhost(g); }
   function drawGhost(g){ const p=toPx(g.x,g.y), t=state.tile, scared=state.frightened>0; ctx.save(); ctx.translate(p.x,p.y); ctx.fillStyle=scared?'#244dff':g.color; ctx.shadowColor=ctx.fillStyle; ctx.shadowBlur=16; ctx.beginPath(); ctx.arc(0,-t*.06,t*.34,Math.PI,0); ctx.lineTo(t*.34,t*.28); for(let i=2;i>=-2;i--) ctx.lineTo(i*t*.17, t*(i%2? .18:.30)); ctx.closePath(); ctx.fill(); ctx.shadowBlur=0; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(-t*.13,-t*.08,t*.08,0,7); ctx.arc(t*.13,-t*.08,t*.08,0,7); ctx.fill(); ctx.fillStyle=scared?'#fff':'#111'; ctx.beginPath(); ctx.arc(-t*.13,-t*.08,t*.035,0,7); ctx.arc(t*.13,-t*.08,t*.035,0,7); ctx.fill(); ctx.restore(); }
   function drawParticles(){ for(const p of state.particles){ ctx.globalAlpha=Math.max(0,p.life/.8); ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill(); } ctx.globalAlpha=1; }
-  function drawPowerBar(){ ctx.fillStyle='rgba(124,248,255,.18)'; ctx.fillRect(state.ox,state.oy-12,state.tile*MAP[0].length,5); ctx.fillStyle='#7cf8ff'; ctx.fillRect(state.ox,state.oy-12,state.tile*MAP[0].length*(state.frightened/8.5),5); }
+  function drawPowerBar(){ ctx.fillStyle='rgba(124,248,255,.18)'; ctx.fillRect(state.ox,state.oy-12,state.tile*state.grid[0].length,5); ctx.fillStyle='#7cf8ff'; ctx.fillRect(state.ox,state.oy-12,state.tile*state.grid[0].length*(state.frightened/8.5),5); }
   function loop(now){ const dt=Math.min(.033,(now-state.last)/1000||.016); state.last=now; update(dt); draw(); requestAnimationFrame(loop); }
   function initAudio(){ if(state.audio) return; const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return; state.audio=new AC(); }
   function tone(freq,dur=.055,type='square',gain=.035){ if(!state.audio||state.muted) return; const t=state.audio.currentTime, o=state.audio.createOscillator(), g=state.audio.createGain(); o.type=type; o.frequency.setValueAtTime(freq,t); g.gain.setValueAtTime(gain,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur); o.connect(g); g.connect(state.audio.destination); o.start(t); o.stop(t+dur); }
