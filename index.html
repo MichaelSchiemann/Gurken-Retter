@@ -76,13 +76,14 @@
   <div class="hud">
     <div class="pill">🥒 <span id="score">0</span></div>
     <div class="pill">❤️ <span id="lives">3</span></div>
+    <div class="pill">L<span id="level">1</span></div>
     <div class="pill">🏆 <span id="best">0</span></div>
   </div>
   <div id="overlay">
     <div class="card">
       <div class="emoji">🥒</div>
       <h1>Gurken-<br>Retter</h1>
-      <p>Sammle Gurken und Wasser. Weiche den Schädlingen aus. Ziehe deinen Finger links und rechts über das Gewächshaus.</p>
+      <p>Sammle Gurken, Wasser und goldene Gurken. Weiche Schädlingen aus, nutze Sonne für Tempo und Blatt-Schilde als Schutz.</p>
       <button id="start">Spiel starten</button>
       <p class="hint">iPhone-Tipp: In Safari öffnen und „Zum Home-Bildschirm“ hinzufügen.</p>
     </div>
@@ -95,6 +96,7 @@
   const $score = document.getElementById('score');
   const $lives = document.getElementById('lives');
   const $best = document.getElementById('best');
+  const $level = document.getElementById('level');
   const overlay = document.getElementById('overlay');
   const startButton = document.getElementById('start');
 
@@ -104,7 +106,7 @@
 
   const state = {
     w: 0, h: 0, dpr: 1, running: false, over: false,
-    score: 0, lives: 3, time: 0, last: 0, spawn: 0, shake: 0,
+    score: 0, lives: 3, level: 1, time: 0, last: 0, spawn: 0, shake: 0, combo: 0, shield: 0, levelFlash: 0,
     player: { x: 0, y: 0, tx: 0, width: 62, height: 70, speedBoost: 0 },
     drops: [], particles: [], stars: [], touchActive: false
   };
@@ -132,12 +134,13 @@
   }
 
   function reset() {
-    state.running = true; state.over = false; state.score = 0; state.lives = 3; state.time = 0; state.spawn = 0; state.shake = 0;
+    state.running = true; state.over = false; state.score = 0; state.lives = 3; state.level = 1; state.time = 0; state.spawn = 0; state.shake = 0; state.combo = 0; state.shield = 0; state.levelFlash = 0;
     state.drops = []; state.particles = []; state.player.x = state.player.tx = state.w / 2; state.player.speedBoost = 0;
     overlay.classList.add('hidden'); updateHud();
   }
 
-  function updateHud() { $score.textContent = state.score; $lives.textContent = state.lives; $best.textContent = best; }
+  function updateHud() { $score.textContent = state.score; $lives.textContent = state.lives; $level.textContent = state.level; $best.textContent = best; }
+  function addScore(points){ const before = state.level; state.combo++; const bonus = Math.min(20, Math.floor(state.combo / 5) * 2); state.score += points + bonus; state.level = 1 + Math.floor(state.score / 180); if(state.level > before){ state.levelFlash = 1.25; state.shield = Math.min(3, state.shield + 1); burst(state.player.x, state.player.y - 34, '#ffd66b', 34); } }
 
   function endGame() {
     state.running = false; state.over = true;
@@ -145,18 +148,21 @@
     updateHud();
     overlay.querySelector('.emoji').textContent = '🌿';
     overlay.querySelector('h1').innerHTML = 'Spiel<br>vorbei';
-    overlay.querySelector('p').textContent = `Du hast ${state.score} Punkte gerettet. Rekord: ${best}.`;
+    overlay.querySelector('p').textContent = `Du hast ${state.score} Punkte gerettet und Level ${state.level} erreicht. Rekord: ${best}.`;
     startButton.textContent = 'Noch mal spielen';
     overlay.classList.remove('hidden');
   }
 
   function spawnDrop() {
     const r = Math.random();
-    let type = r < .58 ? 'cucumber' : r < .78 ? 'water' : r < .90 ? 'sun' : 'bug';
-    const base = Math.min(state.w, state.h);
-    const size = type === 'bug' ? 34 : type === 'sun' ? 38 : 32;
-    const speed = (110 + Math.random() * 100 + state.time * 4) * (type === 'sun' ? .85 : 1);
-    state.drops.push({ type, x: 24 + Math.random() * (state.w - 48), y: -50, size, vy: speed, spin: Math.random() * 6.28, rot: (Math.random() - .5) * 2, wob: Math.random() * 6.28, born: state.time, value: type === 'cucumber' ? 10 : type === 'water' ? 18 : type === 'sun' ? 25 : -1 });
+    const bugChance = Math.min(.22, .10 + state.level * .018);
+    let type = r < .48 ? 'cucumber' : r < .66 ? 'water' : r < .78 ? 'sun' : r < .86 ? 'gold' : r < .92 ? 'shield' : 'bug';
+    if(r > 1 - bugChance) type = 'bug';
+    const size = type === 'bug' ? 34 : type === 'sun' ? 38 : type === 'gold' ? 36 : type === 'shield' ? 34 : 32;
+    const levelSpeed = 1 + (state.level - 1) * .07;
+    const speed = (110 + Math.random() * 100 + state.time * 3.2) * levelSpeed * (type === 'sun' || type === 'shield' ? .85 : 1);
+    const value = type === 'cucumber' ? 10 : type === 'water' ? 18 : type === 'sun' ? 25 : type === 'gold' ? 45 : type === 'shield' ? 15 : -1;
+    state.drops.push({ type, x: 24 + Math.random() * (state.w - 48), y: -50, size, vy: speed, spin: Math.random() * 6.28, rot: (Math.random() - .5) * 2, wob: Math.random() * 6.28, born: state.time, value });
   }
 
   function burst(x, y, color, count = 10) {
@@ -170,7 +176,7 @@
     if (!state.running) return;
     state.time += dt;
     state.spawn -= dt;
-    const spawnRate = Math.max(.31, .82 - state.time * .012);
+    const spawnRate = Math.max(.24, .82 - state.time * .010 - state.level * .025);
     if (state.spawn <= 0) { spawnDrop(); state.spawn = spawnRate * (.65 + Math.random() * .55); }
 
     const p = state.player;
@@ -187,19 +193,22 @@
       if (hitX && hitY) {
         state.drops.splice(i, 1);
         if (d.type === 'bug') {
-          state.lives--; state.shake = .35; burst(d.x, d.y, '#ff6b57', 18); navigator.vibrate?.(80);
-          if (state.lives <= 0) endGame();
+          state.combo = 0; state.shake = .35; burst(d.x, d.y, '#ff6b57', 18); navigator.vibrate?.(80);
+          if (state.shield > 0) { state.shield--; burst(p.x, p.y - 22, '#b9ff83', 26); }
+          else { state.lives--; if (state.lives <= 0) endGame(); }
         } else {
-          state.score += d.value;
-          if (d.type === 'water') { state.score += 4; burst(d.x, d.y, '#8ae4ff', 12); }
+          addScore(d.value);
+          if (d.type === 'water') { addScore(4); burst(d.x, d.y, '#8ae4ff', 12); }
           if (d.type === 'sun') { p.speedBoost = 3.5; burst(d.x, d.y, '#ffd66b', 20); }
+          if (d.type === 'gold') { p.speedBoost = Math.max(p.speedBoost, 1.8); burst(d.x, d.y, '#ffd66b', 28); }
+          if (d.type === 'shield') { state.shield = Math.min(3, state.shield + 1); burst(d.x, d.y, '#b9ff83', 24); }
           if (d.type === 'cucumber') burst(d.x, d.y, '#b9ff83', 10);
           navigator.vibrate?.(18);
         }
         updateHud();
       } else if (d.y > state.h + 70) {
         state.drops.splice(i, 1);
-        if (d.type === 'cucumber') { state.score = Math.max(0, state.score - 2); updateHud(); }
+        if (d.type === 'cucumber' || d.type === 'gold') { state.combo = 0; state.score = Math.max(0, state.score - (d.type === 'gold' ? 8 : 2)); updateHud(); }
       }
     }
 
@@ -207,6 +216,7 @@
       const q = state.particles[i]; q.life -= dt; q.x += q.vx * dt; q.y += q.vy * dt; q.vy += 190 * dt; q.vx *= .985;
       if (q.life <= 0) state.particles.splice(i, 1);
     }
+    state.levelFlash = Math.max(0, state.levelFlash - dt);
     state.shake = Math.max(0, state.shake - dt);
   }
 
@@ -243,6 +253,7 @@
     ctx.fillStyle = '#b9ff83'; roundedRect(-19, -47, 38, 18, 9); ctx.fill();
     ctx.fillStyle = '#153822'; ctx.beginPath(); ctx.arc(-7, -27, 2.4, 0, 7); ctx.arc(8, -27, 2.4, 0, 7); ctx.fill();
     ctx.strokeStyle = '#153822'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(1, -21, 7, .2, Math.PI - .2); ctx.stroke();
+    if (state.shield > 0) { ctx.strokeStyle = 'rgba(185,255,131,.82)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, -6, 48, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = '#b9ff83'; ctx.font = '16px system-ui'; ctx.textAlign = 'center'; ctx.fillText('x' + state.shield, 0, -60); }
     ctx.restore();
   }
 
@@ -253,7 +264,7 @@
   function drawDrop(d) {
     ctx.save(); ctx.translate(d.x + Math.sin(d.wob) * 4, d.y); ctx.rotate(d.spin); ctx.font = `${d.size}px Apple Color Emoji, Segoe UI Emoji, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 4;
-    const emoji = d.type === 'cucumber' ? '🥒' : d.type === 'water' ? '💧' : d.type === 'sun' ? '☀️' : '🐛';
+    const emoji = d.type === 'cucumber' ? '🥒' : d.type === 'water' ? '💧' : d.type === 'sun' ? '☀️' : d.type === 'gold' ? '🌟' : d.type === 'shield' ? '🍃' : '🐛';
     ctx.fillText(emoji, 0, 0); ctx.restore();
   }
 
@@ -269,11 +280,12 @@
     if (state.shake > 0) ctx.translate((Math.random() - .5) * 12 * state.shake * 3, (Math.random() - .5) * 10 * state.shake * 3);
     drawBackground();
     for (const d of state.drops) drawDrop(d);
-    drawParticles(); drawPlayer();
+    drawParticles(); drawPlayer(); drawLevelBanner();
     ctx.restore();
     requestAnimationFrame(render);
   }
 
+  function drawLevelBanner(){ if(state.levelFlash<=0) return; ctx.save(); ctx.globalAlpha=Math.min(1,state.levelFlash); ctx.fillStyle='rgba(9,32,13,.72)'; roundedRect(state.w/2-96, state.h*.18-27, 192, 54, 18); ctx.fill(); ctx.fillStyle='#ffd66b'; ctx.font='900 24px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('Level ' + state.level, state.w/2, state.h*.18); ctx.restore(); }
   function setTarget(clientX) { state.player.tx = Math.max(30, Math.min(state.w - 30, clientX)); }
   canvas.addEventListener('pointerdown', e => { state.touchActive = true; setTarget(e.clientX); if (!state.running && overlay.classList.contains('hidden')) reset(); });
   canvas.addEventListener('pointermove', e => { if (state.touchActive || e.pointerType === 'mouse') setTarget(e.clientX); });
