@@ -68,6 +68,14 @@
       box-shadow: 0 12px 0 #2f7b3d, 0 22px 42px rgba(0,0,0,.35); cursor: pointer;
     }
     button:active { transform: translateY(6px); box-shadow: 0 6px 0 #2f7b3d, 0 16px 32px rgba(0,0,0,.35); }
+    .level-progress {
+      position: fixed; z-index: 3; left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right));
+      top: calc(max(10px, env(safe-area-inset-top)) + 52px); height: 18px; border-radius: 999px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,.18); background: rgba(4,18,10,.44); box-shadow: 0 10px 28px rgba(0,0,0,.18);
+      pointer-events: none; backdrop-filter: blur(10px);
+    }
+    .level-progress-fill { height: 100%; width: 0%; border-radius: inherit; background: linear-gradient(90deg, #6fc96a, #b9ff83, #ffd66b); box-shadow: 0 0 18px rgba(185,255,131,.45); transition: width .18s ease-out; }
+    .level-progress-label { position: absolute; inset: 0; display: grid; place-items: center; font-size: 11px; font-weight: 900; color: #f4ffd8; text-shadow: 0 1px 4px rgba(0,0,0,.65); letter-spacing: .2px; }
     .hidden { display: none !important; }
   </style>
 </head>
@@ -78,6 +86,10 @@
     <div class="pill">❤️ <span id="lives">3</span></div>
     <div class="pill">L<span id="level">1</span></div>
     <div class="pill">🏆 <span id="best">0</span></div>
+  </div>
+  <div class="level-progress" aria-label="Fortschritt bis zum nächsten Level">
+    <div class="level-progress-fill" id="levelProgressFill"></div>
+    <div class="level-progress-label" id="levelProgressLabel">Noch 180 Punkte bis Level 2</div>
   </div>
   <div id="overlay">
     <div class="card">
@@ -97,10 +109,13 @@
   const $lives = document.getElementById('lives');
   const $best = document.getElementById('best');
   const $level = document.getElementById('level');
+  const $levelProgressFill = document.getElementById('levelProgressFill');
+  const $levelProgressLabel = document.getElementById('levelProgressLabel');
   const overlay = document.getElementById('overlay');
   const startButton = document.getElementById('start');
 
   const storeKey = 'gurken-retter-best-v1';
+  const LEVEL_STEP = 180;
   let best = Number(localStorage.getItem(storeKey) || 0);
   $best.textContent = best;
 
@@ -139,8 +154,15 @@
     overlay.classList.add('hidden'); updateHud();
   }
 
-  function updateHud() { $score.textContent = state.score; $lives.textContent = state.lives; $level.textContent = state.level; $best.textContent = best; }
-  function addScore(points){ const before = state.level; state.combo++; const bonus = Math.min(20, Math.floor(state.combo / 5) * 2); state.score += points + bonus; state.level = 1 + Math.floor(state.score / 180); if(state.level > before){ state.levelFlash = 1.25; state.shield = Math.min(3, state.shield + 1); burst(state.player.x, state.player.y - 34, '#ffd66b', 34); } }
+  function updateHud() {
+    $score.textContent = state.score; $lives.textContent = state.lives; $level.textContent = state.level; $best.textContent = best;
+    const progress = state.score % LEVEL_STEP;
+    const pct = Math.max(0, Math.min(100, progress / LEVEL_STEP * 100));
+    const missing = LEVEL_STEP - progress;
+    $levelProgressFill.style.width = pct + '%';
+    $levelProgressLabel.textContent = `Noch ${missing} Punkte bis Level ${state.level + 1}`;
+  }
+  function addScore(points){ const before = state.level; state.combo++; const bonus = Math.min(20, Math.floor(state.combo / 5) * 2); state.score += points + bonus; state.level = 1 + Math.floor(state.score / LEVEL_STEP); if(state.level > before){ state.levelFlash = 1.25; state.shield = Math.min(3, state.shield + 1); burst(state.player.x, state.player.y - 34, '#ffd66b', 34); } }
 
   function endGame() {
     state.running = false; state.over = true;
