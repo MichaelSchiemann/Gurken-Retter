@@ -20,6 +20,8 @@
     #game { display:block; position:fixed; inset:0; width:100vw; height:100vh; height:100dvh; max-width:100vw; max-height:100dvh; touch-action:none; }
     .hud { position: fixed; z-index: 3; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); top: max(8px, env(safe-area-inset-top)); display:flex; justify-content:space-between; gap:8px; pointer-events:none; }
     .pill { min-width: 82px; text-align:center; padding: 8px 10px; border-radius: 999px; border:1px solid rgba(255,255,255,.16); background: rgba(9,14,42,.62); backdrop-filter: blur(12px); box-shadow: 0 10px 30px rgba(0,0,0,.25); font-weight: 900; letter-spacing:.2px; }
+    .mute-btn { position: fixed; z-index: 4; right: max(12px, env(safe-area-inset-right)); top: calc(max(8px, env(safe-area-inset-top)) + 48px); min-width: 48px; padding: 10px 12px; border-radius: 999px; border:1px solid rgba(255,255,255,.16); background: rgba(9,14,42,.62); color:#fff6c7; font-weight: 900; box-shadow: 0 10px 30px rgba(0,0,0,.25); backdrop-filter: blur(12px); }
+    .mute-btn.off { opacity:.68; background: rgba(255,255,255,.08); }
     #overlay { position:fixed; inset:0; z-index: 5; display:grid; place-items:center; padding: 24px; background: radial-gradient(circle at 50% 32%, rgba(29,42,122,.92), rgba(2,4,15,.96)); }
     .card { width:min(440px, 94vw); text-align:center; padding: 28px 22px 22px; border-radius: 30px; background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.055)); border:1px solid rgba(255,255,255,.18); box-shadow: 0 30px 90px rgba(0,0,0,.5); backdrop-filter: blur(16px); }
     h1 { margin: 8px 0 6px; font-size: clamp(42px, 13vw, 64px); line-height:.9; letter-spacing:-2px; color:#ffe45e; text-shadow: 0 0 22px rgba(255,226,73,.36); }
@@ -51,6 +53,7 @@
     <div class="pill">L<span id="level">1</span></div>
     <div class="pill">🏆 <span id="best">0</span></div>
   </div>
+  <button class="mute-btn" id="mute" aria-label="Ton an oder aus schalten">🔊</button>
   <div class="controls" aria-label="Steuerung">
     <div class="pad" id="up">▲</div><div class="pad" id="left">◀</div><div class="pad" id="right">▶</div><div class="pad" id="down">▼</div>
   </div>
@@ -75,7 +78,7 @@
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d', { alpha: false });
   const $score = document.getElementById('score'), $lives = document.getElementById('lives'), $level = document.getElementById('level'), $best = document.getElementById('best');
-  const overlay = document.getElementById('overlay'), startButton = document.getElementById('start'), modeNote = document.getElementById('modeNote');
+  const overlay = document.getElementById('overlay'), startButton = document.getElementById('start'), modeNote = document.getElementById('modeNote'), muteButton = document.getElementById('mute');
   const DIFFICULTIES = {
     easy: {name:'Locker', lives:5, ghost:.82, player:.98, frightened:10.5, bonus:.85, note:'Locker: 5 Leben, langsamere Geister, längere Powerpunkte.'},
     normal: {name:'Normal', lives:3, ghost:1, player:1, frightened:8.5, bonus:1, note:'Normal: klassische Geschwindigkeit, 3 Leben.'},
@@ -151,7 +154,7 @@
     {mode:'patrol', color:'#ff9f43', dir:'down', speed:3.85, corner:{x:13,y:15}},
     {mode:'wanderer', color:'#b875ff', dir:'right', speed:3.75, corner:{x:1,y:15}}
   ];
-  const state = { w:0,h:0,dpr:1,tile:20,ox:0,oy:80, running:false, paused:false, over:false, score:0,lives:3,level:1,last:0,time:0, pellets:0, frightened:0, grid:[], currentMap:LEVELS[0], player:null, ghosts:[], particles:[], mouth:0, touch:null, audio:null, musicGain:null, musicTimer:null, musicStep:0, muted:false, difficulty:difficulty };
+  const state = { w:0,h:0,dpr:1,tile:20,ox:0,oy:80, running:false, paused:false, over:false, score:0,lives:3,level:1,last:0,time:0, pellets:0, frightened:0, grid:[], currentMap:LEVELS[0], player:null, ghosts:[], particles:[], mouth:0, touch:null, audio:null, musicGain:null, musicTimer:null, musicStep:0, muted:localStorage.getItem('punktjaeger-muted')==='1', difficulty:difficulty };
 
   function activeMap(){ return LEVELS[(state.level-1) % LEVELS.length]; }
   function viewportWidth(){ return Math.round(window.visualViewport?.width || innerWidth); }
@@ -193,6 +196,8 @@
   function musicTick(){ if(!state.running||!state.audio||state.muted) return; const bass=[98,98,130.81,146.83,98,98,174.61,146.83], lead=[392,0,440,0,523.25,493.88,440,0,349.23,0,392,0,440,392,329.63,0]; const s=state.musicStep++; const dest=state.musicGain||state.audio.destination; tone(bass[s%bass.length],.115,'square',.010,dest); const f=lead[s%lead.length]; if(f) tone(f,.075,'square',.007,dest); if(s%8===4) tone(196,.05,'triangle',.006,dest); }
   function startMusic(){ initAudio(); if(state.audio?.state==='suspended') state.audio.resume(); if(state.musicTimer) return; state.musicStep=0; musicTick(); state.musicTimer=setInterval(musicTick,190); }
   function stopMusic(){ if(state.musicTimer){ clearInterval(state.musicTimer); state.musicTimer=null; } }
+  function updateMuteButton(){ muteButton.textContent=state.muted?'🔇':'🔊'; muteButton.classList.toggle('off', state.muted); muteButton.setAttribute('aria-label', state.muted?'Ton einschalten':'Ton ausschalten'); }
+  function toggleMute(){ state.muted=!state.muted; localStorage.setItem('punktjaeger-muted', state.muted?'1':'0'); updateMuteButton(); if(state.muted) stopMusic(); else if(state.running) startMusic(); }
   function sound(name){ initAudio(); if(state.audio?.state==='suspended') state.audio.resume(); if(name==='dot') tone(520+Math.random()*60,.035,'square',.025); if(name==='power'){ [330,440,660].forEach((f,i)=>setTimeout(()=>tone(f,.09,'sawtooth',.04),i*55)); } if(name==='eatGhost') tone(180,.14,'triangle',.06); if(name==='death'){ [300,220,150,90].forEach((f,i)=>setTimeout(()=>tone(f,.14,'sawtooth',.05),i*95)); } if(name==='start') [392,523,659].forEach((f,i)=>setTimeout(()=>tone(f,.11,'triangle',.045),i*80)); if(name==='win') [523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.09,'triangle',.05),i*70)); }
   function pointerStart(e){ state.touch={x:e.clientX,y:e.clientY}; }
   function pointerMove(e){ if(!state.touch) return; const dx=e.clientX-state.touch.x, dy=e.clientY-state.touch.y; if(Math.max(Math.abs(dx),Math.abs(dy))>22){ setDir(Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up')); state.touch={x:e.clientX,y:e.clientY}; }}
@@ -200,11 +205,12 @@
   document.addEventListener('gesturestart', e=>e.preventDefault()); document.addEventListener('gesturechange', e=>e.preventDefault());
   document.addEventListener('touchmove', e=>{ if(e.touches?.length>1) e.preventDefault(); }, {passive:false});
   for(const id of ['up','down','left','right']) document.getElementById(id).addEventListener('pointerdown', e=>{ e.preventDefault(); initAudio(); setDir(id); });
+  muteButton.addEventListener('click', e=>{ e.preventDefault(); initAudio(); toggleMute(); });
   document.querySelectorAll?.('[data-difficulty]').forEach(btn=>btn.addEventListener('click', e=>{ e.preventDefault(); setDifficulty(btn.dataset.difficulty); }));
   addEventListener('keydown', e=>{ const k={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',s:'down',a:'left',d:'right'}[e.key]; if(k) setDir(k); if(e.key==='Enter'||e.key===' ') resetAll(); });
   startButton.addEventListener('click',()=>{ initAudio(); resetAll(); }); addEventListener('resize', resize); addEventListener('orientationchange',()=>setTimeout(resize,120)); window.visualViewport?.addEventListener('resize', resize);
   if ('serviceWorker' in navigator && location.protocol !== 'file:') addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
-  refreshDifficultyUI(); resize(); cloneLevel(); requestAnimationFrame(loop);
+  refreshDifficultyUI(); updateMuteButton(); resize(); cloneLevel(); requestAnimationFrame(loop);
 })();
 </script>
 </body>
