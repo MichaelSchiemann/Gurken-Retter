@@ -42,6 +42,7 @@ Dann öffnen:
 http://localhost:8000
 http://localhost:8000/pacman/
 http://localhost:8000/tetris/
+http://localhost:8000/breakout/
 ```
 
 ## Optimierter GitHub-Pages-Workflow

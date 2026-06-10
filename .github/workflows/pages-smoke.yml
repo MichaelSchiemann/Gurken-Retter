@@ -48,7 +48,11 @@ jobs:
             /tetris/ \
             /tetris/index.html \
             /tetris/manifest.webmanifest \
-            /tetris/service-worker.js; do
+            /tetris/service-worker.js \
+            /breakout/ \
+            /breakout/index.html \
+            /breakout/manifest.webmanifest \
+            /breakout/service-worker.js; do
             echo "Checking $path"
             curl --fail --silent --show-error --head "http://127.0.0.1:8000$path" >/dev/null
           done

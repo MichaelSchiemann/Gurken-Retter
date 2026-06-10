@@ -77,9 +77,12 @@
     .level-progress-fill { height: 100%; width: 0%; border-radius: inherit; background: linear-gradient(90deg, #6fc96a, #b9ff83, #ffd66b); box-shadow: 0 0 18px rgba(185,255,131,.45); transition: width .18s ease-out; }
     .level-progress-label { position: absolute; inset: 0; display: grid; place-items: center; font-size: 11px; font-weight: 900; color: #f4ffd8; text-shadow: 0 1px 4px rgba(0,0,0,.65); letter-spacing: .2px; }
     .hidden { display: none !important; }
+    .top-nav { position: fixed; z-index: 7; right: max(12px, env(safe-area-inset-right)); top: calc(max(10px, env(safe-area-inset-top)) + 98px); display: flex; gap: 7px; flex-wrap: wrap; justify-content: flex-end; max-width: 94vw; }
+    .top-nav a { color: #09200d; text-decoration: none; font-weight: 950; font-size: 12px; padding: 7px 9px; border-radius: 999px; background: rgba(244,255,216,.86); box-shadow: 0 7px 18px rgba(0,0,0,.22); pointer-events: auto; }
   </style>
 </head>
 <body>
+  <nav class="top-nav" aria-label="Spielesammlung"><a href="pacman/">🟡 Punktjäger</a><a href="tetris/">🧱 Blockstapler</a><a href="breakout/">🥒💥 Breaker</a></nav>
   <canvas id="game" aria-label="Gurken-Retter Spiel"></canvas>
   <div class="hud">
     <div class="pill">🥒 <span id="score">0</span></div>

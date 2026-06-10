@@ -48,9 +48,12 @@
     .hidden { display:none !important; }
     #rotate { position:fixed; inset:0; z-index:8; display:none; place-items:center; padding:28px; text-align:center; background:#050816; color:#fff6c7; font-size:22px; font-weight:900; }
     @media (orientation: landscape) { #rotate { display:grid; } }
+    .top-nav { position: fixed; z-index: 9; right: max(12px, env(safe-area-inset-right)); top: calc(max(10px, env(safe-area-inset-top)) + 52px); display: flex; gap: 7px; flex-wrap: wrap; justify-content: flex-end; max-width: 94vw; }
+    .top-nav a { color: #051607; text-decoration: none; font-weight: 950; font-size: 12px; padding: 7px 9px; border-radius: 999px; background: rgba(255,246,188,.88); box-shadow: 0 7px 18px rgba(0,0,0,.22); }
   </style>
 </head>
 <body>
+  <nav class="top-nav" aria-label="Spielesammlung"><a href="../">🥒 Retter</a><a href="../tetris/">🧱 Stapler</a><a href="../breakout/">🥒💥 Breaker</a></nav>
   <div id="rotate">Bitte iPhone hochkant drehen.</div>
   <canvas id="game" aria-label="Punktjäger Spiel"></canvas>
   <div class="hud">

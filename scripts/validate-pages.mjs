@@ -9,6 +9,7 @@ const apps = [
   { name: 'Gurken-Retter', dir: '.' },
   { name: 'Punktjäger', dir: 'pacman' },
   { name: 'Blockstapler', dir: 'tetris' },
+  { name: 'Gurken-Breaker', dir: 'breakout' },
 ];
 
 const requiredFiles = ['index.html', 'manifest.webmanifest', 'service-worker.js'];

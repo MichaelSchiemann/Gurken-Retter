@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gurken-retter-v5';
+const CACHE_NAME = 'gurken-retter-v6';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', event => {
