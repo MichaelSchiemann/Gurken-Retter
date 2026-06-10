@@ -24,6 +24,14 @@ Ein kleines iPhone-taugliches Browser-Spiel als GitHub-Pages-Web-App.
 
 ## Lokaler Test
 
+Vor dem Veröffentlichen immer zuerst die statischen PWA-Dateien prüfen:
+
+```bash
+npm run check
+```
+
+Dann lokal ausliefern:
+
 ```bash
 python3 -m http.server 8000
 ```
@@ -32,4 +40,20 @@ Dann öffnen:
 
 ```text
 http://localhost:8000
+http://localhost:8000/pacman/
+http://localhost:8000/tetris/
+```
+
+## Optimierter GitHub-Pages-Workflow
+
+Der ausführliche Ablauf steht hier:
+
+```text
+docs/github-pages-workflow.md
+```
+
+Zusätzlich läuft in GitHub Actions ein Smoke-Check unter:
+
+```text
+.github/workflows/pages-smoke.yml
 ```

@@ -1,0 +1,61 @@
+name: GitHub Pages smoke check
+
+on:
+  push:
+    branches: [main, gh-pages]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-static-pwa:
+    name: Validate static PWA files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run repository checks
+        run: npm run check
+
+      - name: Serve locally
+        run: |
+          python3 -m http.server 8000 > /tmp/gurken-pages-http.log 2>&1 &
+          echo $! > /tmp/gurken-pages-http.pid
+          sleep 2
+
+      - name: Verify key Pages routes
+        run: |
+          set -euo pipefail
+          for path in \
+            / \
+            /index.html \
+            /manifest.webmanifest \
+            /service-worker.js \
+            /icons/icon-180.png \
+            /pacman/ \
+            /pacman/index.html \
+            /pacman/manifest.webmanifest \
+            /pacman/service-worker.js \
+            /tetris/ \
+            /tetris/index.html \
+            /tetris/manifest.webmanifest \
+            /tetris/service-worker.js; do
+            echo "Checking $path"
+            curl --fail --silent --show-error --head "http://127.0.0.1:8000$path" >/dev/null
+          done
+
+      - name: Stop local server
+        if: always()
+        run: |
+          if [ -f /tmp/gurken-pages-http.pid ]; then
+            kill "$(cat /tmp/gurken-pages-http.pid)" 2>/dev/null || true
+          fi

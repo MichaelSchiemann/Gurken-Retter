@@ -1,0 +1,13 @@
+{
+  "name": "gurken-retter-pages",
+  "version": "1.0.0",
+  "private": true,
+  "description": "GitHub-Pages-Workflow und Validierung für Gurken-Retter, Punktjäger und Blockstapler.",
+  "scripts": {
+    "check": "node scripts/validate-pages.mjs",
+    "serve": "python3 -m http.server 8000"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
