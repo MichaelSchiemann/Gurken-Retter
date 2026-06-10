@@ -6,6 +6,7 @@ Dieser Workflow ist für die statischen iPhone/PWA-Spiele in diesem Repository o
 - Punktjäger: `/pacman/`
 - Blockstapler: `/tetris/`
 - Gurken-Breaker: `/breakout/`
+- Gurken-Sprung: `/jump/`
 
 ## Ziel
 
@@ -36,6 +37,7 @@ http://127.0.0.1:8000/
 http://127.0.0.1:8000/pacman/
 http://127.0.0.1:8000/tetris/
 http://127.0.0.1:8000/breakout/
+http://127.0.0.1:8000/jump/
 ```
 
 ## Deployment
@@ -79,6 +81,7 @@ curl -I 'https://michaelschiemann.github.io/Gurken-Retter/?v=TIMESTAMP'
 curl -I 'https://michaelschiemann.github.io/Gurken-Retter/pacman/?v=TIMESTAMP'
 curl -I 'https://michaelschiemann.github.io/Gurken-Retter/tetris/?v=TIMESTAMP'
 curl -I 'https://michaelschiemann.github.io/Gurken-Retter/breakout/?v=TIMESTAMP'
+curl -I 'https://michaelschiemann.github.io/Gurken-Retter/jump/?v=TIMESTAMP'
 ```
 
 Bei iPhone/Safari-Cache-Problemen:

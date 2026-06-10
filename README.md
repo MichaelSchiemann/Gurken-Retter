@@ -43,6 +43,7 @@ http://localhost:8000
 http://localhost:8000/pacman/
 http://localhost:8000/tetris/
 http://localhost:8000/breakout/
+http://localhost:8000/jump/
 ```
 
 ## Optimierter GitHub-Pages-Workflow

@@ -52,7 +52,11 @@ jobs:
             /breakout/ \
             /breakout/index.html \
             /breakout/manifest.webmanifest \
-            /breakout/service-worker.js; do
+            /breakout/service-worker.js \
+            /jump/ \
+            /jump/index.html \
+            /jump/manifest.webmanifest \
+            /jump/service-worker.js; do
             echo "Checking $path"
             curl --fail --silent --show-error --head "http://127.0.0.1:8000$path" >/dev/null
           done
