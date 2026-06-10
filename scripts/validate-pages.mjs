@@ -102,7 +102,17 @@ function validateHtml(app) {
     fail(`${app.name}: kein Inline-JavaScript gefunden`);
     return;
   }
-  scripts.forEach((source, index) => nodeCheckJavaScript(app, `inline-${index + 1}`, source));
+  scripts.forEach((source, index) => {
+    nodeCheckJavaScript(app, `inline-${index + 1}`, source);
+    const referencedLoops = [...source.matchAll(/requestAnimationFrame\((\w+)\)/g)].map(match => match[1]);
+    for (const fn of referencedLoops) {
+      const declaration = new RegExp(`function\\s+${fn}\\s*\\(`);
+      const expression = new RegExp(`(?:const|let|var)\\s+${fn}\\s*=`);
+      if (!declaration.test(source) && !expression.test(source)) {
+        fail(`${app.name}: requestAnimationFrame(${fn}) referenziert keine definierte Funktion`);
+      }
+    }
+  });
 }
 
 function validateServiceWorker(app) {
