@@ -80,6 +80,12 @@ function validateManifest(app) {
   for (const key of ['name', 'short_name', 'start_url', 'display', 'icons']) {
     if (!(key in manifest)) fail(`${app.name}: Manifest fehlt Feld ${key}`);
   }
+  if (manifest.display !== 'fullscreen') {
+    fail(`${app.name}: Manifest display ist nicht fullscreen`);
+  }
+  if (!Array.isArray(manifest.display_override) || !manifest.display_override.includes('fullscreen')) {
+    fail(`${app.name}: Manifest display_override enthält fullscreen nicht`);
+  }
   if (manifest.orientation && !String(manifest.orientation).includes('portrait')) {
     fail(`${app.name}: Manifest orientation ist nicht portrait-orientiert`);
   }
@@ -96,6 +102,9 @@ function validateHtml(app) {
   if (!/rel=["']manifest["']/i.test(html)) fail(`${app.name}: Manifest-Link fehlt im HTML`);
   if (!/apple-touch-icon/i.test(html)) fail(`${app.name}: apple-touch-icon fehlt im HTML`);
   if (!/serviceWorker/.test(html)) fail(`${app.name}: Service-Worker-Registrierung fehlt im HTML`);
+  if (!/minimum-scale=1/.test(html) || !/maximum-scale=1/.test(html)) fail(`${app.name}: strikte Zoom-Sperre fehlt im Viewport`);
+  if (!/fullscreenToggle/.test(html)) fail(`${app.name}: Vollbild-Button fehlt im HTML`);
+  if (!/requestFullscreen|webkitRequestFullscreen/.test(html)) fail(`${app.name}: Fullscreen-API-Helfer fehlt im HTML`);
 
   const scripts = extractInlineScripts(html);
   if (scripts.length === 0) {
