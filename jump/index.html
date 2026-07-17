@@ -19,6 +19,16 @@
     .fullscreen-toggle:active { transform:translateY(2px); }
     .standalone .fullscreen-toggle { display:none; }
     @media all and (display-mode: fullscreen), all and (display-mode: standalone) { .fullscreen-toggle { display:none; } }
+  
+    /* Prevent iPhone/Safari from selecting labels on game controls. */
+    html, body, canvas, button, .touch, .ctrl, .pad, .game-btn, .fullscreen-toggle, .controls {
+      -webkit-user-select: none; user-select: none;
+      -webkit-touch-callout: none; -webkit-user-drag: none;
+      touch-action: none;
+    }
+    button, .touch, .ctrl, .pad, .game-btn, .fullscreen-toggle {
+      cursor: pointer; -webkit-user-drag: none;
+    }
   </style>
 </head>
 <body>
@@ -54,6 +64,21 @@ ui.start.onclick=()=>{audio||=new(window.AudioContext||window.webkitAudioContext
   }
   setupFullscreenButton();
 })();
+
+  function lockGameControlSelection(){
+    document.addEventListener('selectstart', e=>{
+      if(e.target.closest && e.target.closest('button,.controls,.pad,.touch,.ctrl,.game-btn,.fullscreen-toggle,canvas')) e.preventDefault();
+    }, {passive:false});
+    document.addEventListener('contextmenu', e=>{
+      if(e.target.closest && e.target.closest('button,.controls,.pad,.touch,.ctrl,.game-btn,.fullscreen-toggle,canvas')) e.preventDefault();
+    }, {passive:false});
+    document.querySelectorAll('button,.pad,.touch,.ctrl,.game-btn,.fullscreen-toggle').forEach(el=>{
+      el.setAttribute('draggable','false');
+      el.addEventListener('pointerdown', e=>{ if(e.cancelable) e.preventDefault(); }, {passive:false});
+    });
+  }
+  lockGameControlSelection();
+
 </script>
 </body>
 </html>

@@ -105,6 +105,9 @@ function validateHtml(app) {
   if (!/minimum-scale=1/.test(html) || !/maximum-scale=1/.test(html)) fail(`${app.name}: strikte Zoom-Sperre fehlt im Viewport`);
   if (!/fullscreenToggle/.test(html)) fail(`${app.name}: Vollbild-Button fehlt im HTML`);
   if (!/requestFullscreen|webkitRequestFullscreen/.test(html)) fail(`${app.name}: Fullscreen-API-Helfer fehlt im HTML`);
+  if (!/-webkit-user-select:\s*none/.test(html) || !/user-select:\s*none/.test(html)) fail(`${app.name}: Anti-Textauswahl-CSS fehlt`);
+  if (!/-webkit-touch-callout:\s*none/.test(html) || !/-webkit-user-drag:\s*none/.test(html)) fail(`${app.name}: iOS Touch-Callout/User-Drag-Sperre fehlt`);
+  if (!/selectstart/.test(html) || !/contextmenu/.test(html)) fail(`${app.name}: Anti-Auswahl-Eventschutz fehlt`);
 
   const scripts = extractInlineScripts(html);
   if (scripts.length === 0) {
