@@ -77,6 +77,15 @@
     .level-progress-fill { height: 100%; width: 0%; border-radius: inherit; background: linear-gradient(90deg, #6fc96a, #b9ff83, #ffd66b); box-shadow: 0 0 18px rgba(185,255,131,.45); transition: width .18s ease-out; }
     .level-progress-label { position: absolute; inset: 0; display: grid; place-items: center; font-size: 11px; font-weight: 900; color: #f4ffd8; text-shadow: 0 1px 4px rgba(0,0,0,.65); letter-spacing: .2px; }
     .hidden { display: none !important; }
+    .feature-link {
+      display: block; margin: 16px auto 8px; padding: 16px 18px; border-radius: 22px;
+      background: linear-gradient(135deg, rgba(124,214,255,.24), rgba(255,214,107,.22));
+      border: 1px solid rgba(255,255,255,.22); text-decoration: none; color: var(--cream);
+      box-shadow: 0 16px 40px rgba(0,0,0,.24); text-align: left;
+    }
+    .feature-link strong { display: block; font-size: 18px; margin-bottom: 4px; }
+    .feature-link span { display: block; font-size: 14px; opacity: .92; line-height: 1.35; }
+    .feature-link small { display: inline-block; margin-top: 9px; font-size: 12px; font-weight: 900; letter-spacing: .2px; color: #09200d; background: rgba(244,255,216,.9); padding: 6px 10px; border-radius: 999px; }
     .top-nav { position: fixed; z-index: 7; right: max(12px, env(safe-area-inset-right)); top: calc(max(10px, env(safe-area-inset-top)) + 98px); display: flex; gap: 7px; flex-wrap: wrap; justify-content: flex-end; max-width: 94vw; }
     .top-nav a { color: #09200d; text-decoration: none; font-weight: 950; font-size: 12px; padding: 7px 9px; border-radius: 999px; background: rgba(244,255,216,.86); box-shadow: 0 7px 18px rgba(0,0,0,.22); pointer-events: auto; }
 
@@ -116,6 +125,11 @@
       <h1>Gurken-<br>Retter</h1>
       <p>Sammle Gurken, Wasser und goldene Gurken. Weiche Schädlingen aus, nutze Sonne für Tempo und Blatt-Schilde als Schutz.</p>
       <button id="start">Spiel starten</button>
+      <a class="feature-link" href="apfelmaennchen/">
+        <strong>🌀 Neu: Apfelmännchen</strong>
+        <span>Eine interaktive Fraktal-Zoom-Reise mit Lite- und Kino-Version – ideal zum Staunen auf dem iPhone.</span>
+        <small>Jetzt öffnen</small>
+      </a>
       <p class="hint">iPhone-Tipp: In Safari öffnen und „Zum Home-Bildschirm“ hinzufügen.</p>
     </div>
   </div>
