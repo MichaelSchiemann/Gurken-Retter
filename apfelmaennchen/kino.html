@@ -287,6 +287,8 @@
       const initialView = { centerX: -0.743643887037151, centerY: 0.13182590420533, scale: 0.0078, maxIter: 260 };
       const view = { ...initialView };
       let renderToken = 0;
+      let renderActive = false;
+      let renderQueued = false;
       let animating = true;
       let started = false;
       let routeT = 0;
@@ -375,33 +377,53 @@
       }
 
       function renderFractal() {
+        if (renderActive) {
+          renderQueued = true;
+          return;
+        }
+        renderActive = true;
+        renderQueued = false;
         const token = ++renderToken;
-        progress.value = 0;
-        formatStatus('zeichne …');
         const width = fractalCanvas.width;
         const height = fractalCanvas.height;
         const aspect = height / width;
+        const centerX = view.centerX;
+        const centerY = view.centerY;
+        const scale = view.scale;
+        const maxIter = view.maxIter;
+        progress.value = 0;
+        formatStatus(animating ? 'zeichne nächste Reise-Etappe …' : 'zeichne …');
         const image = fctx.createImageData(width, height);
         const data = image.data;
         let y = 0;
-        const rowsPerFrame = Math.max(3, Math.floor(9 / DPR));
+        const rowsPerFrame = Math.max(10, Math.floor(26 / DPR));
+
+        function finish() {
+          renderActive = false;
+          if (renderQueued) {
+            renderFractal();
+          }
+        }
 
         function chunk() {
-          if (token !== renderToken) return;
+          if (token !== renderToken) {
+            finish();
+            return;
+          }
           const yEnd = Math.min(height, y + rowsPerFrame);
           for (; y < yEnd; y++) {
-            const ci = view.centerY + ((y / height) - 0.5) * view.scale * aspect;
+            const ci = centerY + ((y / height) - 0.5) * scale * aspect;
             for (let x = 0; x < width; x++) {
-              const cr = view.centerX + ((x / width) - 0.5) * view.scale;
+              const cr = centerX + ((x / width) - 0.5) * scale;
               let zr = 0, zi = 0, iter = 0;
-              while (zr * zr + zi * zi <= 4 && iter < view.maxIter) {
+              while (zr * zr + zi * zi <= 4 && iter < maxIter) {
                 const zr2 = zr * zr - zi * zi + cr;
                 zi = 2 * zr * zi + ci;
                 zr = zr2;
                 iter++;
               }
               const idx = (y * width + x) * 4;
-              const [r, g, b] = palette(iter, view.maxIter);
+              const [r, g, b] = palette(iter, maxIter);
               data[idx] = r;
               data[idx + 1] = g;
               data[idx + 2] = b;
@@ -415,6 +437,7 @@
             fctx.putImageData(image, 0, 0);
             progress.value = 100;
             formatStatus(animating ? 'cineastische Reise läuft' : 'manuelle Ansicht');
+            finish();
           }
         }
         requestAnimationFrame(chunk);
