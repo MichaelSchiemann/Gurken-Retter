@@ -1,4 +1,4 @@
-const CACHE_NAME = 'apfelmaennchen-v2';
+const CACHE_NAME = 'apfelmaennchen-v3';
 const ASSETS = [
   './',
   './index.html',

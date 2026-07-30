@@ -474,11 +474,12 @@
       function updateJourney(dt) {
         if (!animating || dragging || activePointers.size >= 2) return;
         const speed = Number(speedInput.value);
-        routeT += dt * (0.45 + speed * 0.48);
-        const swirl = view.scale * (0.045 + 0.01 * Math.sin(routeT * 0.8));
-        view.centerX += Math.cos(routeT * 0.76) * swirl * dt * 8.5;
-        view.centerY += Math.sin(routeT * 1.11) * swirl * dt * 8.5;
-        view.scale *= Math.pow(0.9885, speed * 60 * dt);
+        const motion = 0.42 + speed * 0.32;
+        routeT += dt * motion;
+        const swirl = view.scale * (0.018 + 0.004 * Math.sin(routeT * 0.8));
+        view.centerX += Math.cos(routeT * 0.76) * swirl * dt * 3.1;
+        view.centerY += Math.sin(routeT * 1.11) * swirl * dt * 3.1;
+        view.scale *= Math.pow(0.9948, speed * 60 * dt);
         const targetIter = Math.min(2200, Math.round(210 + 46 * Math.log10(1 / view.scale)));
         if (targetIter > view.maxIter) view.maxIter = targetIter;
         if (view.scale < 5e-11) {
