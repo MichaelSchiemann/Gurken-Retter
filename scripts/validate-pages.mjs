@@ -11,6 +11,7 @@ const apps = [
   { name: 'Blockstapler', dir: 'tetris' },
   { name: 'Gurken-Breaker', dir: 'breakout' },
   { name: 'Gurken-Sprung', dir: 'jump' },
+  { name: 'Apfelmännchen', dir: 'apfelmaennchen' },
 ];
 
 const requiredFiles = ['index.html', 'manifest.webmanifest', 'service-worker.js'];

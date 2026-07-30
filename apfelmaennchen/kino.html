@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no, interactive-widget=overlays-content" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Apfelmännchen Kino" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#08111f" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+  <title>Apfelmännchen – Kino-Reise</title>
+  <style>
+    :root {
+      --bg0: #02040a;
+      --bg1: #07111f;
+      --bg2: #10223d;
+      --panel: rgba(7, 12, 24, 0.58);
+      --line: rgba(255,255,255,0.12);
+      --text: #eef5ff;
+      --muted: #b8c7df;
+      --glow: #82d7ff;
+      --warm: #ffbe72;
+      --danger: #ff7c7c;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 18%, rgba(130,215,255,0.12), transparent 26%),
+        radial-gradient(circle at 80% 22%, rgba(255,190,114,0.08), transparent 22%),
+        linear-gradient(180deg, var(--bg2) 0%, var(--bg1) 42%, var(--bg0) 100%);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+    }
+    #starfield { z-index: 0; }
+    #fractal { z-index: 1; }
+    .vignette {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at center, transparent 0 42%, rgba(0,0,0,0.08) 68%, rgba(0,0,0,0.33) 100%),
+        linear-gradient(180deg, rgba(255,255,255,0.03), transparent 14%, transparent 86%, rgba(255,255,255,0.03));
+      mix-blend-mode: screen;
+    }
+    .grain {
+      position: fixed;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      opacity: 0.08;
+      background-image:
+        radial-gradient(circle at 20% 20%, rgba(255,255,255,0.7) 0 0.5px, transparent 0.6px),
+        radial-gradient(circle at 70% 60%, rgba(255,255,255,0.45) 0 0.6px, transparent 0.7px),
+        radial-gradient(circle at 40% 80%, rgba(255,255,255,0.55) 0 0.5px, transparent 0.7px);
+      background-size: 150px 150px, 190px 190px, 220px 220px;
+      animation: drift 28s linear infinite;
+    }
+    @keyframes drift { from { transform: translate3d(0,0,0); } to { transform: translate3d(-90px, -50px, 0); } }
+    .topbar, .bottombar {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      z-index: 4;
+      pointer-events: none;
+    }
+    .topbar { top: max(12px, env(safe-area-inset-top)); align-items: flex-start; }
+    .bottombar { bottom: calc(12px + env(safe-area-inset-bottom)); align-items: flex-end; }
+    .card {
+      pointer-events: auto;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      backdrop-filter: blur(18px);
+      box-shadow: 0 16px 44px rgba(0,0,0,0.28);
+      padding: 14px 16px;
+    }
+    .title { font-size: 18px; font-weight: 700; margin-bottom: 5px; }
+    .small, .status, .label {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+      max-width: min(58rem, 100%);
+    }
+    .fullscreen-toggle {
+      position: fixed; z-index: 6; left: max(12px, env(safe-area-inset-left)); top: calc(max(12px, env(safe-area-inset-top)) + 86px);
+      padding: 8px 11px; min-height: 0; border-radius: 999px; border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(238,244,255,0.9); color: #08111f; font-size: 12px; font-weight: 900; line-height: 1;
+      box-shadow: 0 7px 18px rgba(0,0,0,0.22);
+    }
+    .fullscreen-toggle:active { transform: translateY(2px); }
+    .standalone .fullscreen-toggle { display: none; }
+    @media all and (display-mode: fullscreen), all and (display-mode: standalone) { .fullscreen-toggle { display:none; } }
+    a, button, input[type="range"] { pointer-events: auto; }
+    button, .nav-link {
+      appearance: none;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      min-height: 44px;
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 600;
+      touch-action: manipulation;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-user-drag: none;
+    }
+    button.primary { background: rgba(130,215,255,0.16); }
+    button.secondary, .nav-link { background: rgba(255,190,114,0.16); }
+    button.alert { background: rgba(255,124,124,0.14); }
+    .stack { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .sliderWrap { display: flex; gap: 10px; align-items: center; }
+    input[type="range"] { width: 140px; accent-color: var(--glow); }
+    progress { width: 140px; height: 10px; }
+    .status { max-width: 72ch; }
+    .intro {
+      position: fixed;
+      inset: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: radial-gradient(circle at center, rgba(16,34,61,0.42), rgba(2,4,10,0.88));
+      transition: opacity 0.8s ease, visibility 0.8s ease;
+    }
+    .intro.hidden { opacity: 0; visibility: hidden; }
+    .introCard {
+      max-width: 720px;
+      width: 100%;
+      text-align: center;
+      background: rgba(5, 9, 18, 0.72);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 24px;
+      padding: 28px 24px;
+      box-shadow: 0 30px 70px rgba(0,0,0,0.32);
+      backdrop-filter: blur(16px);
+    }
+    .eyebrow {
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--glow);
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+    .intro h1 {
+      margin: 0 0 10px;
+      font-size: clamp(28px, 6vw, 54px);
+      line-height: 1.04;
+      text-shadow: 0 0 24px rgba(130,215,255,0.25);
+    }
+    .intro p {
+      margin: 0 auto 18px;
+      max-width: 58ch;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 16px;
+    }
+    .introActions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .caption { margin-top: 14px; color: var(--muted); font-size: 12px; }
+    @media (max-width: 860px) {
+      .topbar, .bottombar { flex-direction: column; }
+      .controls { justify-content: flex-start; }
+      .sliderWrap { width: 100%; }
+      input[type="range"] { flex: 1; }
+      .status { max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <button id="fullscreenToggle" class="fullscreen-toggle" type="button" aria-label="Vollbild aktivieren">⛶ Vollbild</button>
+  <canvas id="starfield"></canvas>
+  <canvas id="fractal" aria-label="Apfelmännchen Kino-Fraktal"></canvas>
+  <div class="vignette"></div>
+  <div class="grain"></div>
+
+  <div class="topbar">
+    <div class="card">
+      <div class="title">Apfelmännchen – Kino-Reise</div>
+      <div class="small">Sternenhimmel, cineastisches Intro und generative Musik. Doppeltipp zoomt, zwei Finger zoomen und verschieben.</div>
+    </div>
+    <div class="card controls">
+      <button id="playPause" class="primary" type="button">⏸ Reise pausieren</button>
+      <button id="reset" type="button">Reset</button>
+      <button id="detail" class="secondary" type="button">Mehr Details</button>
+      <button id="reroute" type="button">Neue Route</button>
+      <button id="sound" class="alert" type="button">♪ Ton starten</button>
+      <div class="sliderWrap">
+        <span class="label">Tempo</span>
+        <input id="speed" type="range" min="0.2" max="2.3" step="0.05" value="1">
+      </div>
+      <div class="sliderWrap">
+        <span class="label">Musik</span>
+        <input id="volume" type="range" min="0" max="1" step="0.01" value="0.24">
+      </div>
+      <a class="nav-link" href="./">🌀 Lite-Version</a>
+      <a class="nav-link" href="../">🏠 Spiele</a>
+    </div>
+  </div>
+
+  <div class="bottombar">
+    <div class="card status" id="status">Berechne …</div>
+    <div class="card stack">
+      <span class="small">Rendern</span>
+      <progress id="progress" max="100" value="0"></progress>
+    </div>
+  </div>
+
+  <div id="intro" class="intro">
+    <div class="introCard">
+      <div class="eyebrow">Fraktale Reise</div>
+      <h1>Ein Flug in die unendliche Tiefe des Apfelmännchens</h1>
+      <p>
+        Eine einfache Iteration erzeugt ein Universum aus Spiralen, Schluchten und immer neuen kleinen Apfelmännchen.
+        Starte die Reise – mit Sternenhintergrund, sanfter Musik und filmischem Auftakt.
+      </p>
+      <div class="introActions">
+        <button id="startExperience" class="primary" type="button">Erlebnis starten</button>
+        <button id="startSilent" type="button">Still starten</button>
+      </div>
+      <div class="caption">Für Ton ist auf iPhone/Safari ein Tipp nötig – deshalb startet die Musik erst nach deiner Berührung.</div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));
+      }
+
+      const starCanvas = document.getElementById('starfield');
+      const fractalCanvas = document.getElementById('fractal');
+      const sctx = starCanvas.getContext('2d');
+      const fctx = fractalCanvas.getContext('2d', { alpha: false });
+      const progress = document.getElementById('progress');
+      const statusEl = document.getElementById('status');
+      const intro = document.getElementById('intro');
+      const startExperienceBtn = document.getElementById('startExperience');
+      const startSilentBtn = document.getElementById('startSilent');
+      const playPauseBtn = document.getElementById('playPause');
+      const resetBtn = document.getElementById('reset');
+      const detailBtn = document.getElementById('detail');
+      const rerouteBtn = document.getElementById('reroute');
+      const soundBtn = document.getElementById('sound');
+      const speedInput = document.getElementById('speed');
+      const volumeInput = document.getElementById('volume');
+      const fullscreenToggle = document.getElementById('fullscreenToggle');
+
+      const DPR = Math.min(window.devicePixelRatio || 1, 2);
+      const initialView = { centerX: -0.743643887037151, centerY: 0.13182590420533, scale: 0.0078, maxIter: 260 };
+      const view = { ...initialView };
+      let renderToken = 0;
+      let animating = true;
+      let started = false;
+      let routeT = 0;
+      let lastFrame = performance.now();
+      let dragging = false;
+      let dragLast = null;
+      const activePointers = new Map();
+      let pinchBase = null;
+
+      const stars = [];
+      let audioCtx = null;
+      let masterGain = null;
+      let padGain = null;
+      let pulseGain = null;
+      let lfo = null;
+      let pulseInterval = null;
+      let audioRunning = false;
+
+      function sizeCanvases() {
+        document.body.classList.toggle('standalone', window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true);
+        const w = Math.max(1, Math.floor(window.innerWidth * DPR));
+        const h = Math.max(1, Math.floor(window.innerHeight * DPR));
+        for (const c of [starCanvas, fractalCanvas]) {
+          c.width = w;
+          c.height = h;
+          c.style.width = window.innerWidth + 'px';
+          c.style.height = window.innerHeight + 'px';
+        }
+        buildStars();
+        renderFractal();
+        drawStars(0);
+      }
+
+      function buildStars() {
+        stars.length = 0;
+        const count = Math.floor((window.innerWidth * window.innerHeight) / 3200);
+        for (let i = 0; i < count; i++) {
+          stars.push({
+            x: Math.random() * starCanvas.width,
+            y: Math.random() * starCanvas.height,
+            z: 0.2 + Math.random() * 0.8,
+            r: 0.6 + Math.random() * 1.9,
+            twinkle: Math.random() * Math.PI * 2,
+          });
+        }
+      }
+
+      function drawStars(dt) {
+        sctx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+        const drift = animating ? (0.015 + Number(speedInput.value) * 0.028) * dt : 0.01 * dt;
+        for (const star of stars) {
+          star.y += star.z * 20 * drift;
+          if (star.y > starCanvas.height + 3) {
+            star.y = -3;
+            star.x = Math.random() * starCanvas.width;
+          }
+          star.twinkle += dt * (0.001 + star.z * 0.003);
+          const alpha = 0.25 + 0.75 * (0.5 + 0.5 * Math.sin(star.twinkle));
+          const radius = star.r * (0.75 + 0.35 * alpha);
+          sctx.beginPath();
+          sctx.fillStyle = `rgba(190,220,255,${0.12 + alpha * 0.75})`;
+          sctx.arc(star.x, star.y, radius, 0, Math.PI * 2);
+          sctx.fill();
+        }
+      }
+
+      function formatStatus(extra = '') {
+        const bits = [
+          `Mitte: (${view.centerX.toFixed(12)}, ${view.centerY.toFixed(12)})`,
+          `Breite: ${view.scale.toExponential(3)}`,
+          `Iterationen: ${view.maxIter}`,
+        ];
+        if (extra) bits.push(extra);
+        statusEl.textContent = bits.join(' · ');
+      }
+
+      function palette(iter, maxIter) {
+        if (iter >= maxIter) return [0, 0, 0];
+        const t = iter / maxIter;
+        const glow = Math.pow(t, 0.28);
+        const wave = (freq, phase) => 0.5 + 0.5 * Math.sin(6.28318 * (freq * t + phase));
+        const r = Math.floor(18 + 130 * glow * wave(1.05, 0.05) + 80 * wave(2.2, 0.3));
+        const g = Math.floor(20 + 120 * glow * wave(0.78, 0.42) + 92 * wave(1.6, 0.61));
+        const b = Math.floor(38 + 170 * glow * wave(1.25, 0.72) + 40 * wave(2.8, 0.12));
+        return [Math.min(255, r), Math.min(255, g), Math.min(255, b)];
+      }
+
+      function renderFractal() {
+        const token = ++renderToken;
+        progress.value = 0;
+        formatStatus('zeichne …');
+        const width = fractalCanvas.width;
+        const height = fractalCanvas.height;
+        const aspect = height / width;
+        const image = fctx.createImageData(width, height);
+        const data = image.data;
+        let y = 0;
+        const rowsPerFrame = Math.max(3, Math.floor(9 / DPR));
+
+        function chunk() {
+          if (token !== renderToken) return;
+          const yEnd = Math.min(height, y + rowsPerFrame);
+          for (; y < yEnd; y++) {
+            const ci = view.centerY + ((y / height) - 0.5) * view.scale * aspect;
+            for (let x = 0; x < width; x++) {
+              const cr = view.centerX + ((x / width) - 0.5) * view.scale;
+              let zr = 0, zi = 0, iter = 0;
+              while (zr * zr + zi * zi <= 4 && iter < view.maxIter) {
+                const zr2 = zr * zr - zi * zi + cr;
+                zi = 2 * zr * zi + ci;
+                zr = zr2;
+                iter++;
+              }
+              const idx = (y * width + x) * 4;
+              const [r, g, b] = palette(iter, view.maxIter);
+              data[idx] = r;
+              data[idx + 1] = g;
+              data[idx + 2] = b;
+              data[idx + 3] = 255;
+            }
+          }
+          progress.value = Math.round((y / height) * 100);
+          if (y < height) {
+            requestAnimationFrame(chunk);
+          } else {
+            fctx.putImageData(image, 0, 0);
+            progress.value = 100;
+            formatStatus(animating ? 'cineastische Reise läuft' : 'manuelle Ansicht');
+          }
+        }
+        requestAnimationFrame(chunk);
+      }
+
+      function screenToComplex(x, y) {
+        const width = fractalCanvas.width;
+        const height = fractalCanvas.height;
+        const aspect = height / width;
+        return {
+          x: view.centerX + ((x / width) - 0.5) * view.scale,
+          y: view.centerY + ((y / height) - 0.5) * view.scale * aspect,
+        };
+      }
+
+      function zoomAt(x, y, factor) {
+        const before = screenToComplex(x, y);
+        view.scale *= factor;
+        const after = screenToComplex(x, y);
+        view.centerX += before.x - after.x;
+        view.centerY += before.y - after.y;
+        renderFractal();
+      }
+
+      function newRoute() {
+        routeT = Math.random() * Math.PI * 2;
+        view.centerX = -0.743643887037151 + (Math.random() - 0.5) * 0.0018;
+        view.centerY = 0.13182590420533 + (Math.random() - 0.5) * 0.0014;
+        view.scale = 0.0074 + Math.random() * 0.0014;
+        view.maxIter = 260;
+        renderFractal();
+      }
+
+      function updateJourney(dt) {
+        if (!animating || dragging || activePointers.size >= 2) return;
+        const speed = Number(speedInput.value);
+        routeT += dt * (0.45 + speed * 0.48);
+        const swirl = view.scale * (0.045 + 0.01 * Math.sin(routeT * 0.8));
+        view.centerX += Math.cos(routeT * 0.76) * swirl * dt * 8.5;
+        view.centerY += Math.sin(routeT * 1.11) * swirl * dt * 8.5;
+        view.scale *= Math.pow(0.9885, speed * 60 * dt);
+        const targetIter = Math.min(2200, Math.round(210 + 46 * Math.log10(1 / view.scale)));
+        if (targetIter > view.maxIter) view.maxIter = targetIter;
+        if (view.scale < 5e-11) {
+          newRoute();
+        } else {
+          renderFractal();
+        }
+        updateAudio();
+      }
+
+      function pointerXY(event) {
+        const rect = fractalCanvas.getBoundingClientRect();
+        return { x: (event.clientX - rect.left) * DPR, y: (event.clientY - rect.top) * DPR };
+      }
+
+      function distance(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+      function midpoint(a, b) { return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
+      function stopAuto() { animating = false; playPauseBtn.textContent = '▶ Reise starten'; updateAudio(); }
+
+      fractalCanvas.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        fractalCanvas.setPointerCapture(event.pointerId);
+        const p = pointerXY(event);
+        activePointers.set(event.pointerId, p);
+        stopAuto();
+        if (activePointers.size === 1) {
+          dragging = true;
+          dragLast = p;
+        } else if (activePointers.size === 2) {
+          const [a, b] = [...activePointers.values()];
+          pinchBase = { dist: distance(a, b), mid: midpoint(a, b), scale: view.scale };
+        }
+      });
+
+      fractalCanvas.addEventListener('pointermove', (event) => {
+        if (!activePointers.has(event.pointerId)) return;
+        event.preventDefault();
+        const p = pointerXY(event);
+        activePointers.set(event.pointerId, p);
+        if (activePointers.size === 1 && dragging && dragLast) {
+          const dx = p.x - dragLast.x;
+          const dy = p.y - dragLast.y;
+          view.centerX -= (dx / fractalCanvas.width) * view.scale;
+          view.centerY -= (dy / fractalCanvas.height) * view.scale * (fractalCanvas.height / fractalCanvas.width);
+          dragLast = p;
+          renderFractal();
+        } else if (activePointers.size === 2 && pinchBase) {
+          const [a, b] = [...activePointers.values()];
+          const d = Math.max(6, distance(a, b));
+          const mid = midpoint(a, b);
+          const factor = pinchBase.dist / d;
+          view.scale = pinchBase.scale * factor;
+          const before = screenToComplex(pinchBase.mid.x, pinchBase.mid.y);
+          const after = screenToComplex(mid.x, mid.y);
+          view.centerX += before.x - after.x;
+          view.centerY += before.y - after.y;
+          renderFractal();
+        }
+      });
+
+      function releasePointer(event) {
+        if (!activePointers.has(event.pointerId)) return;
+        activePointers.delete(event.pointerId);
+        dragging = false;
+        dragLast = null;
+        pinchBase = null;
+      }
+      fractalCanvas.addEventListener('pointerup', releasePointer);
+      fractalCanvas.addEventListener('pointercancel', releasePointer);
+      fractalCanvas.addEventListener('pointerleave', releasePointer);
+
+      fractalCanvas.addEventListener('dblclick', (event) => {
+        stopAuto();
+        const p = pointerXY(event);
+        zoomAt(p.x, p.y, 0.34);
+      });
+
+      let lastTap = 0;
+      fractalCanvas.addEventListener('pointerup', (event) => {
+        if (event.pointerType !== 'touch') return;
+        const now = performance.now();
+        if (now - lastTap < 280) {
+          const p = pointerXY(event);
+          stopAuto();
+          zoomAt(p.x, p.y, 0.34);
+          lastTap = 0;
+        } else {
+          lastTap = now;
+        }
+      });
+
+      fractalCanvas.addEventListener('wheel', (event) => {
+        event.preventDefault();
+        stopAuto();
+        const p = pointerXY(event);
+        zoomAt(p.x, p.y, event.deltaY < 0 ? 0.78 : 1.3);
+      }, { passive: false });
+
+      document.addEventListener('contextmenu', event => {
+        if (event.target.closest('canvas, button, .nav-link')) event.preventDefault();
+      }, { passive: false });
+      document.addEventListener('selectstart', event => {
+        if (event.target.closest('canvas, button, .nav-link')) event.preventDefault();
+      }, { passive: false });
+
+      playPauseBtn.addEventListener('click', () => {
+        animating = !animating;
+        playPauseBtn.textContent = animating ? '⏸ Reise pausieren' : '▶ Reise starten';
+        updateAudio();
+        renderFractal();
+      });
+      resetBtn.addEventListener('click', () => {
+        Object.assign(view, initialView);
+        animating = true;
+        playPauseBtn.textContent = '⏸ Reise pausieren';
+        renderFractal();
+        updateAudio();
+      });
+      detailBtn.addEventListener('click', () => {
+        view.maxIter = Math.min(2400, Math.round(view.maxIter * 1.35));
+        stopAuto();
+        renderFractal();
+      });
+      rerouteBtn.addEventListener('click', () => {
+        animating = true;
+        playPauseBtn.textContent = '⏸ Reise pausieren';
+        newRoute();
+        updateAudio();
+      });
+      soundBtn.addEventListener('click', async () => {
+        if (!audioRunning) {
+          await startAudio();
+        } else {
+          stopAudio();
+        }
+      });
+      volumeInput.addEventListener('input', updateAudio);
+      fullscreenToggle.addEventListener('click', async () => {
+        const root = document.documentElement;
+        try {
+          if (document.fullscreenElement || document.webkitFullscreenElement) {
+            if (document.exitFullscreen) await document.exitFullscreen();
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+          } else if (root.requestFullscreen) {
+            await root.requestFullscreen();
+          } else if (root.webkitRequestFullscreen) {
+            root.webkitRequestFullscreen();
+          }
+        } catch {}
+      });
+
+      function midiFreq(midi) { return 440 * Math.pow(2, (midi - 69) / 12); }
+
+      async function startAudio() {
+        if (!audioCtx) {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          if (!Ctx) {
+            soundBtn.textContent = '♪ Audio nicht unterstützt';
+            soundBtn.disabled = true;
+            return;
+          }
+          audioCtx = new Ctx();
+          masterGain = audioCtx.createGain();
+          masterGain.gain.value = 0.0001;
+          const lowpass = audioCtx.createBiquadFilter();
+          lowpass.type = 'lowpass';
+          lowpass.frequency.value = 1400;
+          lowpass.Q.value = 0.7;
+          masterGain.connect(lowpass);
+          lowpass.connect(audioCtx.destination);
+
+          padGain = audioCtx.createGain();
+          padGain.gain.value = 0.18;
+          padGain.connect(masterGain);
+
+          pulseGain = audioCtx.createGain();
+          pulseGain.gain.value = 0.0;
+          pulseGain.connect(masterGain);
+
+          const osc1 = audioCtx.createOscillator();
+          osc1.type = 'sine';
+          osc1.frequency.value = midiFreq(45);
+          osc1.connect(padGain);
+          osc1.start();
+
+          const osc2 = audioCtx.createOscillator();
+          osc2.type = 'triangle';
+          osc2.frequency.value = midiFreq(52);
+          osc2.detune.value = 8;
+          osc2.connect(padGain);
+          osc2.start();
+
+          const osc3 = audioCtx.createOscillator();
+          osc3.type = 'sine';
+          osc3.frequency.value = midiFreq(57);
+          osc3.detune.value = -5;
+          osc3.connect(padGain);
+          osc3.start();
+
+          lfo = audioCtx.createOscillator();
+          const lfoGain = audioCtx.createGain();
+          lfo.type = 'sine';
+          lfo.frequency.value = 0.09;
+          lfoGain.gain.value = 0.07;
+          lfo.connect(lfoGain);
+          lfoGain.connect(padGain.gain);
+          lfo.start();
+
+          pulseInterval = setInterval(() => {
+            if (!audioRunning || !audioCtx) return;
+            const now = audioCtx.currentTime;
+            const note = [69, 72, 76, 79][Math.floor(Math.random() * 4)];
+            const osc = audioCtx.createOscillator();
+            const env = audioCtx.createGain();
+            osc.type = Math.random() > 0.5 ? 'triangle' : 'sine';
+            osc.frequency.setValueAtTime(midiFreq(note), now);
+            env.gain.setValueAtTime(0.0001, now);
+            env.gain.exponentialRampToValueAtTime(0.08, now + 0.03);
+            env.gain.exponentialRampToValueAtTime(0.0001, now + 1.8);
+            osc.connect(env);
+            env.connect(pulseGain);
+            osc.start(now);
+            osc.stop(now + 2.0);
+          }, 1300);
+        }
+        await audioCtx.resume();
+        audioRunning = true;
+        soundBtn.textContent = '♪ Ton stoppen';
+        updateAudio();
+      }
+
+      function stopAudio() {
+        audioRunning = false;
+        if (masterGain && audioCtx) {
+          masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
+          masterGain.gain.setTargetAtTime(0.0001, audioCtx.currentTime, 0.25);
+        }
+        soundBtn.textContent = '♪ Ton starten';
+      }
+
+      function updateAudio() {
+        if (!audioCtx || !masterGain || !padGain || !pulseGain) return;
+        const vol = Number(volumeInput.value);
+        const zoomEnergy = Math.max(0, Math.min(1, (Math.log10(1 / view.scale) - 2) / 8));
+        const moving = animating ? 1 : 0.55;
+        const now = audioCtx.currentTime;
+        const masterTarget = audioRunning ? Math.max(0.0001, vol * moving) : 0.0001;
+        const padTarget = 0.08 + zoomEnergy * 0.16;
+        const pulseTarget = 0.02 + zoomEnergy * 0.08;
+        masterGain.gain.cancelScheduledValues(now);
+        masterGain.gain.setTargetAtTime(masterTarget, now, 0.25);
+        padGain.gain.cancelScheduledValues(now);
+        padGain.gain.setTargetAtTime(padTarget, now, 0.4);
+        pulseGain.gain.cancelScheduledValues(now);
+        pulseGain.gain.setTargetAtTime(audioRunning ? pulseTarget : 0.0001, now, 0.35);
+      }
+
+      function startExperience(withAudio) {
+        if (started) return;
+        started = true;
+        intro.classList.add('hidden');
+        if (withAudio) startAudio();
+        renderFractal();
+      }
+
+      startExperienceBtn.addEventListener('click', () => startExperience(true));
+      startSilentBtn.addEventListener('click', () => startExperience(false));
+
+      window.addEventListener('resize', sizeCanvases);
+      window.addEventListener('orientationchange', () => setTimeout(sizeCanvases, 120));
+
+      function frame(now) {
+        const dt = Math.min(50, now - lastFrame);
+        lastFrame = now;
+        drawStars(dt);
+        if (started) updateJourney(dt / 1000);
+        requestAnimationFrame(frame);
+      }
+
+      sizeCanvases();
+      formatStatus('warte auf Start');
+      requestAnimationFrame((t) => { lastFrame = t; frame(t); });
+    })();
+  </script>
+</body>
+</html>
